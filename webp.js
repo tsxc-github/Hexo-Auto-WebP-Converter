@@ -7,50 +7,50 @@ const sharp = require('sharp');
 /**
  * Hexo's filter hook that is triggered before generating a post
  */
-hexo.extend.filter.register('before_post_render', function(data){
-    // Replace img src with .webp
-    if (data.path.split('/')[0] === 'about') {
-        return data;
-    }
+// hexo.extend.filter.register('before_post_render', function(data){
+//     // Replace img src with .webp
+//     if (data.path.split('/')[0] === 'about') {
+//         return data;
+//     }
 
-    // Find all img tags
-    const imgRegex = /(?<!https?:\/\/)\!\[[^\]]*]\((?!https?:\/\/)(.*?)\)|<img [^>]*src="((?!https?:\/\/)(.*?))"[^>]*>/g;
-    if (data.content.indexOf('<img') !== -1 || data.content.indexOf('![') !== -1) {
-        try {
-            data.content.match(imgRegex).forEach(function(imgTag){
-                console.log(color.green('Hexo-Auto-Webp-Converter  ') + 'Found: ' + color.magenta(imgTag))
+//     // Find all img tags
+//     const imgRegex = /(?<!https?:\/\/)\!\[[^\]]*]\((?!https?:\/\/)(.*?)\)|<img [^>]*src="((?!https?:\/\/)(.*?))"[^>]*>/g;
+//     if (data.content.indexOf('<img') !== -1 || data.content.indexOf('![') !== -1) {
+//         try {
+//             data.content.match(imgRegex).forEach(function(imgTag){
+//                 console.log(color.green('Hexo-Auto-Webp-Converter  ') + 'Found: ' + color.magenta(imgTag))
 
-                // Determine whether the imgTag is in Markdown format or HTML format
-                const match = imgTag.match(/\((.*?)\)|<img [^>]*src="((?!https?:\/\/)(.*?)?)"/);
-                let src;
-                if (match[1]) {
-                    src = match[1];
-                } else if (match[2]) {
-                    src = match[2];
-                } else {
-                    console.log(color.green('Hexo-Auto-Webp-Converter  ') + color.red('Failed to match ') + color.magenta(match));
-                }
+//                 // Determine whether the imgTag is in Markdown format or HTML format
+//                 const match = imgTag.match(/\((.*?)\)|<img [^>]*src="((?!https?:\/\/)(.*?)?)"/);
+//                 let src;
+//                 if (match[1]) {
+//                     src = match[1];
+//                 } else if (match[2]) {
+//                     src = match[2];
+//                 } else {
+//                     console.log(color.green('Hexo-Auto-Webp-Converter  ') + color.red('Failed to match ') + color.magenta(match));
+//                 }
 
-                try {
-                    if(!src.endsWith('.webp')) {
-                        const newSrc = src.substring(0, src.lastIndexOf('.')) + '.webp';
-                        data.content = data.content.replace(src, newSrc);
-                        console.log(color.green('Hexo-Auto-Webp-Converter  ') + 'Replaced: ' + color.magenta(src) + ' => ' + color.magenta(newSrc));
-                    } else {
-                        console.log(color.green('Hexo-Auto-Webp-Converter  ') + color.yellow('Skip ') + color.magenta(src) + ' the match is the following: ' + color.magenta(imgTag));
-                    }
-                } catch (err) {
-                    console.log(color.green('Hexo-Auto-Webp-Converter  ') + color.red('Failed to convert ') + color.magenta(src) + ' due to ' + color.yellow(err));
-                }
-            });
-        } catch (TypeError) {
-            console.log(color.green('Hexo-Auto-Webp-Converter  ') + color.red('Failed to match ') + color.magenta(data.title) + ' due to ' + color.yellow('TypeError') + ', this is often caused by image tags in code blocks');
-        }
+//                 try {
+//                     if(!src.endsWith('.webp')) {
+//                         const newSrc = src.substring(0, src.lastIndexOf('.')) + '.webp';
+//                         // data.content = data.content.replace(src, newSrc);
+//                         console.log(color.green('Hexo-Auto-Webp-Converter  ') + 'Replaced: ' + color.magenta(src) + ' => ' + color.magenta(newSrc));
+//                     } else {
+//                         console.log(color.green('Hexo-Auto-Webp-Converter  ') + color.yellow('Skip ') + color.magenta(src) + ' the match is the following: ' + color.magenta(imgTag));
+//                     }
+//                 } catch (err) {
+//                     console.log(color.green('Hexo-Auto-Webp-Converter  ') + color.red('Failed to convert ') + color.magenta(src) + ' due to ' + color.yellow(err));
+//                 }
+//             });
+//         } catch (TypeError) {
+//             console.log(color.green('Hexo-Auto-Webp-Converter  ') + color.red('Failed to match ') + color.magenta(data.title) + ' due to ' + color.yellow('TypeError') + ', this is often caused by image tags in code blocks');
+//         }
 
-    }
+//     }
 
-    return data;
-});
+//     return data;
+// });
 
 
 /**
@@ -108,15 +108,17 @@ hexo.extend.filter.register('before_exit', () => {
             if (regex.test(subDir)) {
                 const imgName = path.basename(imgPath);
                 const name = imgName.split('.').slice(0, -1).join('.');
-                const newPath = path.join(imgDir, name + '.webp');
+                const newPathWebp = path.join(imgDir, name + '.webp');
+                const newPathAvif = path.join(imgDir, name + '.avif');
 
                 // Check if the converted image already exists
                 // If it does not exist, convert it
-                fs.access(newPath, fs.constants.F_OK, async (err) => {
+                fs.access(newPathWebp, fs.constants.F_OK, async (err) => {
                     if (err) {
                         try {
-                            await sharp(imgPath).toFile(newPath);
-                            console.log(color.green('Hexo-Auto-Webp-Converter  ') + 'Converted: ' + color.magenta(imgPath) + ' => ' + color.magenta(newPath));
+                            await sharp(imgPath).toFile(newPathWebp);
+                            await sharp(imgPath).toFile(newPathAvif);
+                            console.log(color.green('Hexo-Auto-Webp-Converter  ') + 'Converted: ' + color.magenta(imgPath) + ' => ' + color.magenta(newPathWebp));
                         } catch (err) {
                             console.log(color.green('Hexo-Auto-Webp-Converter  ') + color.red('Failed to convert ') + color.magenta(imgPath) + ' due to ' + color.yellow(err));
                         }
