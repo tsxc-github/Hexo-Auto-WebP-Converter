@@ -104,7 +104,7 @@ hexo.extend.filter.register('before_exit', () => {
 
             // Only convert images in the post directory (e.g. public/2021/01/01)
             // If Hexo_Abbrlink is enabled, the post directory will be public/post
-            const regex = /^(\d{4}\\)|^(posts\\)/;
+            const regex = /./;
             if (regex.test(subDir)) {
                 const imgName = path.basename(imgPath);
                 const name = imgName.split('.').slice(0, -1).join('.');
