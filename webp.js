@@ -136,7 +136,7 @@ if (args[1].includes('hexo') && (args[2] === 'g' || args[2] === 'generate')) {
         Convert(hexo.theme_dir);
         Convert(hexo.source_dir);
 
-    }, 10)
+    }, 10000)
     /**
      * Hexo's filter hook that is triggered before Hexo exits
      */
