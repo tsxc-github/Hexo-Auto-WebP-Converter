@@ -52,83 +52,99 @@ const sharp = require('sharp');
 //     return data;
 // });
 
+function Convert(publicDir) {
 
-/**
- * Hexo's filter hook that is triggered before Hexo exits
- */
-hexo.extend.filter.register('before_exit', () => {
-    // Check if the command is hexo g or hexo generate, if not, the script will not be executed
-    const args = process.argv;
-    if (args[1].includes('hexo') && (args[2] === 'g' || args[2] === 'generate')) {
-        const publicDir = hexo.public_dir;
+    const imgExtensions = ['.jpg', '.jpeg', '.png'];
+    const images = []
+    const videoExtensions = ['.mp4'];
+    const videos = []
 
-        const imgExtensions = ['.jpg', '.jpeg', '.png'];
-        const images = []
-        const videoExtensions = ['.mp4'];
-        const videos = []
+    /**
+     * Traverse the directory recursively and find all images and videos
+     * @param dir
+     */
+    function traverse(dir) {
+        // Read all files in the directory
+        const files = fs.readdirSync(dir);
 
-        /**
-         * Traverse the directory recursively and find all images and videos
-         * @param dir
-         */
-        function traverse(dir) {
-            // Read all files in the directory
-            const files = fs.readdirSync(dir);
+        // Loop through all files
+        files.forEach(file => {
+            const filePath = path.join(dir, file);
 
-            // Loop through all files
-            files.forEach(file => {
-                const filePath = path.join(dir, file);
-
-                // Determine if the file is a directory or a file
-                // If it is a directory, continue to traverse
-                // If it is a file, determine whether it is an image or a video
-                if (fs.statSync(filePath).isDirectory()) {
-                    traverse(filePath);
-                } else {
-                    const ext = path.extname(filePath);
-                    if (imgExtensions.includes(ext)) {
-                        images.push(filePath);
-                    } else if (videoExtensions.includes(ext)) {
-                        videos.push(filePath);
-                    }
-                }
-            });
-        }
-
-        traverse(publicDir);
-
-        // Convert images to .webp
-        images.forEach(async imgPath => {
-            const imgDir = path.dirname(imgPath);
-            const subDir = imgDir.slice(publicDir.length);
-
-            // Only convert images in the post directory (e.g. public/2021/01/01)
-            // If Hexo_Abbrlink is enabled, the post directory will be public/post
-            const regex = /./;
-            if (regex.test(subDir)) {
-                const imgName = path.basename(imgPath);
-                const name = imgName.split('.').slice(0, -1).join('.');
-                const newPathWebp = path.join(imgDir, name + '.webp');
-                const newPathAvif = path.join(imgDir, name + '.avif');
-
-                // Check if the converted image already exists
-                // If it does not exist, convert it
-                fs.access(newPathWebp, fs.constants.F_OK, async (err) => {
-                    if (err) {
-                        try {
-                            await sharp(imgPath).toFile(newPathWebp);
-                            await sharp(imgPath).toFile(newPathAvif);
-                            console.log(color.green('Hexo-Auto-Webp-Converter  ') + 'Converted: ' + color.magenta(imgPath) + ' => ' + color.magenta(newPathWebp));
-                        } catch (err) {
-                            console.log(color.green('Hexo-Auto-Webp-Converter  ') + color.red('Failed to convert ') + color.magenta(imgPath) + ' due to ' + color.yellow(err));
-                        }
-                    } else {
-                        console.log(color.green('Hexo-Auto-Webp-Converter  ') + color.yellow('Skip ') + color.magenta(imgPath) + ' the file already exists');
-                    }
-                });
+            // Determine if the file is a directory or a file
+            // If it is a directory, continue to traverse
+            // If it is a file, determine whether it is an image or a video
+            if (fs.statSync(filePath).isDirectory()) {
+                traverse(filePath);
             } else {
-                console.log(color.green('Hexo-Auto-Webp-Converter  ') + color.yellow('Skip ') + color.magenta(subDir) + ' the directory is not a post directory');
+                const ext = path.extname(filePath);
+                if (imgExtensions.includes(ext)) {
+                    images.push(filePath);
+                } else if (videoExtensions.includes(ext)) {
+                    videos.push(filePath);
+                }
             }
         });
     }
-}, 9999);
+
+    traverse(publicDir);
+
+    // Convert images to .webp
+    images.forEach(async imgPath => {
+        const imgDir = path.dirname(imgPath);
+        const subDir = imgDir.slice(publicDir.length);
+
+        // Only convert images in the post directory (e.g. public/2021/01/01)
+        // If Hexo_Abbrlink is enabled, the post directory will be public/post
+        const regex = /./;
+        if (regex.test(subDir)) {
+            const imgName = path.basename(imgPath);
+            const name = imgName.split('.').slice(0, -1).join('.');
+            const newPathWebp = path.join(imgDir, name + '.webp');
+            const newPathAvif = path.join(imgDir, name + '.avif');
+
+            // Check if the converted image already exists
+            // If it does not exist, convert it
+            fs.access(newPathWebp, fs.constants.F_OK, async (err) => {
+                if (err) {
+                    try {
+                        await sharp(imgPath).toFile(newPathWebp);
+                        await sharp(imgPath).toFile(newPathAvif);
+                        console.log(color.green('Hexo-Auto-Webp-Converter  ') + 'Converted: ' + color.magenta(imgPath) + ' => ' + color.magenta(newPathWebp));
+                    } catch (err) {
+                        console.log(color.green('Hexo-Auto-Webp-Converter  ') + color.red('Failed to convert ') + color.magenta(imgPath) + ' due to ' + color.yellow(err));
+                    }
+                } else {
+                    console.log(color.green('Hexo-Auto-Webp-Converter  ') + color.yellow('Skip ') + color.magenta(imgPath) + ' the file already exists');
+                }
+            });
+        } else {
+            console.log(color.green('Hexo-Auto-Webp-Converter  ') + color.yellow('Skip ') + color.magenta(subDir) + ' the directory is not a post directory');
+        }
+    });
+
+}
+
+
+const args = process.argv;
+if (args[1].includes('hexo') && (args[2] === 'g' || args[2] === 'generate')) {
+    // Check if the command is hexo g or hexo generate, if not, the script will not be executed
+
+    // 转换blog中源文件
+    hexo.extend.filter.register('before_generate', () => {
+
+        Convert(hexo.theme_dir);
+        Convert(hexo.source_dir);
+
+    }, 10)
+    /**
+     * Hexo's filter hook that is triggered before Hexo exits
+     */
+    // hexo.extend.filter.register('before_exit', () => {
+        
+    //     Convert(hexo.public_dir);
+
+    // }, 9999);
+}
+
+
